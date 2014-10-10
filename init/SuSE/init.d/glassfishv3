@@ -1,0 +1,144 @@
+#!/bin/sh
+#
+# SUSE system startup script for GlassFish v3 server
+#
+# Copyright (C) 2014 stepping stone GmbH
+#                    Switzerland
+#                    http://www.stepping-stone.ch
+#                    support@stepping-stone.ch
+#
+# Authors:
+#  Christian Affolter <christian.affolter@stepping-stone.ch>
+#  
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Affero General Public 
+# License as published  by the Free Software Foundation, version
+# 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License  along with this program.
+# If not, see <http://www.gnu.org/licenses/>.
+#
+# /etc/init.d/glassfishv3
+#
+### BEGIN INIT INFO
+# Provides:          glassfishv3
+# Required-Start:    $local_fs $syslog $network
+# Should-Start:      $named postgresql sshd mysql
+# Required-Stop:     $local_fs $syslog $network
+# Should-Stop:       $named postgresql mysql
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: GlassFish v3 server
+# Description:       Start GlassFish v3 Java EE-compatible application server
+### END INIT INFO
+ 
+. /etc/rc.status
+ 
+# Reset status of this service
+rc_reset
+ 
+# Check for existence of needed config file and read it
+GLASSFISH_SYSCONFIG=/etc/sysconfig/glassfishv3
+if [ ! -r "${GLASSFISH_SYSCONFIG}" ]; then
+        echo "$GLASSFISH_SYSCONFIG is missing"
+        rc_failed 6 # program is not configured
+        rc_status -v
+        rc_exit
+fi
+ 
+# Source config 
+. $GLASSFISH_SYSCONFIG
+ 
+# Check for missing asadmin command
+ASADMIN_BIN=${GLASSFISH_AS_INSTALL_PARENT}/bin/asadmin
+if [ ! -x $ASADMIN_BIN  ]; then
+        echo "$ASADMIN_BIN is missing";
+        rc_failed 5  # program is not installed
+        rc_status -v
+        rc_exit
+fi
+ 
+# Starts a GlassFish domain
+start_domain() {
+        local domain="$1"
+ 
+        echo "Starting GlassFish domain '${domain}'"
+        su ${GLASSFISH_USER} --command "${ASADMIN_BIN} start-domain ${domain}"
+        return $?
+}
+ 
+# Stops a GlassFish domain
+stop_domain() {
+        local domain="$1"
+ 
+        echo "Stopping GlassFish domain '${domain}'"
+        su ${GLASSFISH_USER} --command "${ASADMIN_BIN} stop-domain ${domain}"
+        return $?
+}
+ 
+case "$1" in
+    start)
+        echo "Starting GlassFish v3 server"
+        for glassFishDomain in ${GLASSFISH_DOMAINS}; do
+                if ! start_domain "$glassFishDomain"; then
+                        rc_failed $?
+                        break
+                fi
+        done
+ 
+        rc_status -v
+        ;;
+    stop)
+        echo "Shutting down GlassFish v3 server"
+        for glassFishDomain in ${GLASSFISH_DOMAINS}; do
+                if ! stop_domain "$glassFishDomain"; then
+                        rc_failed $?
+                        break
+                fi
+        done
+ 
+        rc_status -v
+        ;;
+    try-restart)
+        ## Stop the service and if this succeeds (i.e. the 
+        ## service was running before), start it again.
+        $0 status > /dev/null && $0 restart
+ 
+        rc_status
+        ;;
+    restart)
+        ## Stop the service and regardless of whether it was
+        ## running or not, start it again.
+        $0 stop
+        $0 start
+ 
+        rc_status
+        ;;
+    force-reload)
+        # GlassFish does not support reload, restart the service if it
+        # is running.
+        $0 try-restart
+        rc_status
+        ;;
+    reload)
+        # GlassFish does not support reload
+        rc_failed 3  # unimplemented feature
+        rc_status -v
+        ;;
+    status)
+        # GlassFish does not support status
+        rc_failed 3  # unimplemented feature
+        rc_status -v
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|try-restart|restart}"
+        exit 1
+        ;;
+esac
+rc_exit

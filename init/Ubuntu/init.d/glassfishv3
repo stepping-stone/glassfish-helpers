@@ -1,0 +1,110 @@
+#! /bin/sh
+#
+# Copyright (C) 2014 stepping stone GmbH
+#                    Switzerland
+#                    http://www.stepping-stone.ch
+#                    support@stepping-stone.ch
+#  
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Affero General Public 
+# License as published  by the Free Software Foundation, version
+# 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License  along with this program.
+# If not, see <http://www.gnu.org/licenses/>.
+#
+# /etc/init.d/glassfishv3
+#
+### BEGIN INIT INFO
+# Provides:          glassfishv3
+# Required-Start:    $local_fs $syslog $network
+# Should-Start:      $named postgresql sshd mysql
+# Required-Stop:     $local_fs $syslog $network
+# Should-Stop:       $named postgresql mysql
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: GlassFish v3 server
+# Description:       Start GlassFish v3 Java EE-compatible application server
+### END INIT INFO
+#
+# Author: Christian Affolter <christian.affolter@stepping-stone.ch>
+#
+
+DESC="GlassFish v3 application server"
+NAME="$( basename $0 )"
+SCRIPTNAME=/etc/init.d/$NAME
+
+. /lib/lsb/init-functions
+
+load_config() {
+    local config="/etc/default/${NAME}"
+
+	if test -s "$config"; then
+        . "$config"
+        return 0
+	fi
+
+    log_failure_msg "Missing or empty config file $config"
+    return 1
+
+}
+
+check_config() {
+    
+    local var_name
+    for var_name in GLASSFISH_USER \
+                    GLASSFISH_DOMAIN \
+                    GLASSFISH_AS_INSTALL_PARENT
+    do
+        if test -z "$( eval echo \$$var_name )"; then
+            log_failure_msg "Missing or empty $var_name variable"
+            return 1
+        fi
+    done
+
+	if ! test -d "${GLASSFISH_AS_INSTALL_PARENT}"; then
+		log_failure_msg "Missing directory ${GLASSFISH_AS_INSTALL_PARENT}"
+        return 1
+	fi
+
+    # Path to the asadmin command
+    GLASSFISH_ASADMIN="${GLASSFISH_AS_INSTALL_PARENT}/bin/asadmin"
+
+    if ! test -x "${GLASSFISH_ASADMIN}"; then
+        log_failure_msg "Missing or inexecutable asadmin: ${GLASSFISH_ASADMIN}"
+        return 1
+    fi
+
+    return 0
+}
+
+# Load and validate the required configuration
+load_config && check_config || exit 1
+
+case "$1" in
+  start)
+	log_daemon_msg "Starting $DESC (${GLASSFISH_DOMAIN})"
+	su -s /bin/sh -c "${GLASSFISH_ASADMIN} start-domain ${domain}" ${GLASSFISH_USER}
+	log_end_msg $?
+	;;
+  stop)
+	log_daemon_msg "Stopping $DESC (${GLASSFISH_DOMAIN})"
+	su -s /bin/sh -c "${GLASSFISH_ASADMIN} stop-domain ${domain}" ${GLASSFISH_USER}
+	log_end_msg $?
+       ;;
+  restart|force-reload)
+	log_daemon_msg "Restarting $DESC (${GLASSFISH_DOMAIN})"
+	su -s /bin/sh -c "${GLASSFISH_ASADMIN} restart-domain ${domain}" ${GLASSFISH_USER}
+	log_end_msg $?
+	;;
+  *)
+	echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload}" >&2
+	exit 3
+	;;
+esac

@@ -1,0 +1,65 @@
+#!/sbin/runscript
+#
+# Copyright (C) 2014 stepping stone GmbH
+#                    Switzerland
+#                    http://www.stepping-stone.ch
+#                    support@stepping-stone.ch
+#
+# Authors:
+#  Christian Affolter <christian.affolter@stepping-stone.ch>
+#  
+# This program is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Affero General Public 
+# License as published by the Free Software Foundation, version
+# 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public
+# License along with this program.
+# If not, see <http://www.gnu.org/licenses/>.
+
+depend() {
+        need net
+        use logger
+        after sshd postgresql mysql
+}
+
+start() {
+        local domain
+
+        for domain in ${GLASSFISH_DOMAINS}; do
+                start_domain "$domain"
+        done
+}
+
+stop() {
+        local domain
+
+        for domain in ${GLASSFISH_DOMAINS}; do
+                stop_domain "$domain"
+        done
+}
+
+start_domain() {
+        local domain="$1"
+
+        ebegin "Starting GlassFish Server v3 domain '${domain}'"
+        su ${GLASSFISH_USER} -c \
+            "${GLASSFISH_AS_INSTALL_PARENT}/bin/asadmin start-domain ${domain}"
+
+        eend $?
+}
+
+stop_domain() {
+        local domain="$1"
+
+        ebegin "Stopping GlassFish Server v3 domain '${domain}'"
+        su ${GLASSFISH_USER} -c \
+            "${GLASSFISH_AS_INSTALL_PARENT}/bin/asadmin stop-domain ${domain}"
+
+        eend $?
+}

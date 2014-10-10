@@ -1,0 +1,24 @@
+## Path:           Applications/GlassFish
+## Description:    The GlassFish v3 Java EE-compatible application server
+## ServiceRestart: glassfishv3
+ 
+## Type:           string()
+## Default:        "glassfish"
+#
+# User under which the GlassFish server will be started
+#
+GLASSFISH_USER="glassfish"
+ 
+## Type:           string()
+## Default:        "/opt/glassfish/glassfish3"
+#
+# GlassFish as-install-parent (root install directory)
+#
+GLASSFISH_AS_INSTALL_PARENT="/opt/glassfish/glassfish3"
+ 
+## Type:           string()
+## Default:        "domain1"
+#
+# GlassFish domains which should be started, separated by space
+#
+GLASSFISH_DOMAINS="domain1"

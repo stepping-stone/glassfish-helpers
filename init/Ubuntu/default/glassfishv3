@@ -1,0 +1,10 @@
+# Defaults file for /etc/init.d/glassfishv3
+
+# User under which the GlassFish server will be started
+GLASSFISH_USER='glassfish'
+
+# GlassFish domain which should be started
+GLASSFISH_DOMAIN='domain1'
+
+# Root directory of the GlassFish installation, aka as-install-parent
+GLASSFISH_AS_INSTALL_PARENT='/opt/glassfish/glassfish3'
