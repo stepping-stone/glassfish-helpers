@@ -37,7 +37,7 @@
 #
 
 DESC="GlassFish v3 application server"
-NAME="$( basename $0 )"
+NAME="$( basename $( readlink -e $0 ) )"
 SCRIPTNAME=/etc/init.d/$NAME
 
 . /lib/lsb/init-functions
